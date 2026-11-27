@@ -1,0 +1,363 @@
+[
+  {
+    "category": "Science - Physics",
+    "question": "बल की SI इकाई क्या है?",
+    "answers": [
+      "न्यूटन",
+      "newton"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "कार्य की SI इकाई क्या है?",
+    "answers": [
+      "जूल",
+      "joule"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "शक्ति की SI इकाई क्या है?",
+    "answers": [
+      "वाट",
+      "watt"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "विद्युत धारा की SI इकाई क्या है?",
+    "answers": [
+      "एम्पियर",
+      "ampere"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "तापमान की SI इकाई क्या है?",
+    "answers": [
+      "केल्विन",
+      "kelvin"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "प्रकाश की गति लगभग कितनी होती है?",
+    "answers": [
+      "3 लाख किलोमीटर प्रति सेकंड",
+      "300000 किलोमीटर प्रति सेकंड",
+      "तीन लाख किलोमीटर प्रति सेकंड"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "ध्वनि किस माध्यम में नहीं चल सकती?",
+    "answers": [
+      "निर्वात",
+      "वैक्यूम"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "वाहनों में पीछे देखने के लिए कौन-सा दर्पण उपयोग होता है?",
+    "answers": [
+      "उत्तल दर्पण",
+      "convex mirror"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "पृथ्वी पर गुरुत्वीय त्वरण का मान लगभग कितना है?",
+    "answers": [
+      "9.8 मीटर प्रति सेकंड वर्ग",
+      "9.8 m/s2",
+      "9.8"
+    ]
+  },
+  {
+    "category": "Science - Physics",
+    "question": "आवृत्ति की SI इकाई क्या है?",
+    "answers": [
+      "हर्ट्ज",
+      "हर्ट्ज़",
+      "hertz"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "पानी का रासायनिक सूत्र क्या है?",
+    "answers": [
+      "h2o",
+      "एच2ओ"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "साधारण नमक का रासायनिक सूत्र क्या है?",
+    "answers": [
+      "nacl",
+      "एनएसीएल"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "ऑक्सीजन का रासायनिक प्रतीक क्या है?",
+    "answers": [
+      "o"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "सोने का रासायनिक प्रतीक क्या है?",
+    "answers": [
+      "au"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "चाँदी का रासायनिक प्रतीक क्या है?",
+    "answers": [
+      "ag"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "कार्बन का परमाणु क्रमांक क्या है?",
+    "answers": [
+      "6",
+      "छह"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "शुद्ध पानी का pH मान कितना होता है?",
+    "answers": [
+      "7",
+      "सात"
+    ]
+  },
+  {
+    "category": "Science - Chemistry",
+    "question": "सबसे हल्की गैस कौन-सी है?",
+    "answers": [
+      "हाइड्रोजन",
+      "hydrogen"
+    ]
+  },
+  {
+    "category": "Science - Biology",
+    "question": "मानव शरीर का सबसे बड़ा अंग कौन-सा है?",
+    "answers": [
+      "त्वचा",
+      "skin"
+    ]
+  },
+  {
+    "category": "Science - Biology",
+    "question": "मानव शरीर में रक्त पंप करने वाला अंग कौन-सा है?",
+    "answers": [
+      "हृदय",
+      "दिल",
+      "heart"
+    ]
+  },
+  {
+    "category": "Science - Biology",
+    "question": "मानव शरीर में सामान्यतः कितने जोड़े गुणसूत्र होते हैं?",
+    "answers": [
+      "23",
+      "तेईस"
+    ]
+  },
+  {
+    "category": "Science - Biology",
+    "question": "पौधे प्रकाश संश्लेषण में कौन-सी गैस लेते हैं?",
+    "answers": [
+      "कार्बन डाइऑक्साइड",
+      "co2"
+    ]
+  },
+  {
+    "category": "Science - Biology",
+    "question": "विटामिन C की कमी से कौन-सा रोग होता है?",
+    "answers": [
+      "स्कर्वी",
+      "scurvy"
+    ]
+  },
+  {
+    "category": "Science - Biology",
+    "question": "मानव शरीर का सामान्य तापमान लगभग कितना होता है?",
+    "answers": [
+      "37 डिग्री सेल्सियस",
+      "37°c",
+      "98.6 फारेनहाइट"
+    ]
+  },
+  {
+    "category": "Social Science - History",
+    "question": "भारत को स्वतंत्रता कब मिली?",
+    "answers": [
+      "15 अगस्त 1947",
+      "15 august 1947"
+    ]
+  },
+  {
+    "category": "Social Science - History",
+    "question": "भारत छोड़ो आंदोलन किस वर्ष शुरू हुआ?",
+    "answers": [
+      "1942",
+      "उन्नीस सौ बयालीस"
+    ]
+  },
+  {
+    "category": "Social Science - History",
+    "question": "भारतीय राष्ट्रीय कांग्रेस की स्थापना किस वर्ष हुई?",
+    "answers": [
+      "1885",
+      "अठारह सौ पचासी"
+    ]
+  },
+  {
+    "category": "Social Science - History",
+    "question": "ताजमहल किसने बनवाया?",
+    "answers": [
+      "शाहजहाँ",
+      "शाह जहां",
+      "shah jahan"
+    ]
+  },
+  {
+    "category": "Social Science - History",
+    "question": "भारत के पहले प्रधानमंत्री कौन थे?",
+    "answers": [
+      "जवाहरलाल नेहरू",
+      "नेहरू",
+      "jawaharlal nehru"
+    ]
+  },
+  {
+    "category": "Social Science - Geography",
+    "question": "भारत की राजधानी क्या है?",
+    "answers": [
+      "नई दिल्ली",
+      "दिल्ली",
+      "new delhi"
+    ]
+  },
+  {
+    "category": "Social Science - Geography",
+    "question": "भारत का सबसे बड़ा राज्य क्षेत्रफल के आधार पर कौन-सा है?",
+    "answers": [
+      "राजस्थान"
+    ]
+  },
+  {
+    "category": "Social Science - Geography",
+    "question": "विश्व का सबसे बड़ा महासागर कौन-सा है?",
+    "answers": [
+      "प्रशांत महासागर",
+      "pacific ocean"
+    ]
+  },
+  {
+    "category": "Social Science - Geography",
+    "question": "भारत की सबसे लंबी नदी कौन-सी मानी जाती है?",
+    "answers": [
+      "गंगा",
+      "गंगा नदी"
+    ]
+  },
+  {
+    "category": "Social Science - Civics",
+    "question": "भारत का संविधान कब लागू हुआ?",
+    "answers": [
+      "26 जनवरी 1950",
+      "26 january 1950"
+    ]
+  },
+  {
+    "category": "Social Science - Civics",
+    "question": "भारतीय संविधान की प्रारूप समिति के अध्यक्ष कौन थे?",
+    "answers": [
+      "डॉ भीमराव आंबेडकर",
+      "डॉ. भीमराव अंबेडकर",
+      "भीमराव अंबेडकर",
+      "बी आर आंबेडकर"
+    ]
+  },
+  {
+    "category": "Social Science - Civics",
+    "question": "भारत में मतदान करने की न्यूनतम आयु कितनी है?",
+    "answers": [
+      "18 वर्ष",
+      "18",
+      "अठारह वर्ष"
+    ]
+  },
+  {
+    "category": "Social Science - Economics",
+    "question": "भारत की मुद्रा क्या है?",
+    "answers": [
+      "रुपया",
+      "भारतीय रुपया",
+      "rupee"
+    ]
+  },
+  {
+    "category": "Social Science - Economics",
+    "question": "भारतीय रिजर्व बैंक की स्थापना किस वर्ष हुई?",
+    "answers": [
+      "1935",
+      "उन्नीस सौ पैंतीस"
+    ]
+  },
+  {
+    "category": "GK",
+    "question": "भारत का राष्ट्रीय पशु कौन-सा है?",
+    "answers": [
+      "बाघ",
+      "टाइगर"
+    ]
+  },
+  {
+    "category": "GK",
+    "question": "भारत का राष्ट्रीय पक्षी कौन-सा है?",
+    "answers": [
+      "मोर",
+      "peacock"
+    ]
+  },
+  {
+    "category": "GK",
+    "question": "भारत का राष्ट्रीय फूल कौन-सा है?",
+    "answers": [
+      "कमल",
+      "lotus"
+    ]
+  },
+  {
+    "category": "GK",
+    "question": "संयुक्त राष्ट्र संघ की स्थापना किस वर्ष हुई?",
+    "answers": [
+      "1945",
+      "उन्नीस सौ पैंतालीस"
+    ]
+  },
+  {
+    "category": "GK",
+    "question": "एक वर्ष में सामान्यतः कितने दिन होते हैं?",
+    "answers": [
+      "365",
+      "तीन सौ पैंसठ"
+    ]
+  },
+  {
+    "category": "GK",
+    "question": "सौरमंडल का सबसे बड़ा ग्रह कौन-सा है?",
+    "answers": [
+      "बृहस्पति",
+      "गुरु",
+      "jupiter"
+    ]
+  }
+]
