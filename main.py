@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pyrogram import Client, filters, enums
 from pyrogram.errors import FloodWait, RPCError
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Required environment variables: API_ID, API_HASH, BOT_TOKEN
 API_ID = int(os.environ["API_ID"])
@@ -42,8 +43,8 @@ except Exception:
 
 # One active sending task per group.
 running_jobs = {}
-# chat_id -> user_id -> {"answers": [...], "question": "..."}
-active_answers = {}
+# chat_id -> bot_question_message_id -> question state (answer is tied to that exact message)
+question_messages = {}
 # chat_id -> user_id -> score
 quiz_scores = {}
 
@@ -127,7 +128,7 @@ async def help_command(client, message):
         "/id - ग्रुप और यूजर ID देखें\n"
         "/question - हर सदस्य को अलग Quiz सवाल भेजें\n\n"
         "⚠️ /mention, /cancel और /question केवल ग्रुप एडमिन चला सकते हैं।\n"
-        "Quiz के सवाल हिंदी में हैं। जवाब देने पर Bot सही/गलत बताएगा और उसी सदस्य को अगला सवाल देगा।",
+        "Quiz के सवाल हिंदी में हैं। जवाब देने पर Bot सही/गलत बताएगा।",
         parse_mode=enums.ParseMode.HTML,
     )
 
@@ -179,47 +180,108 @@ async def mention_command(client, message):
     await message.reply_text("🔎 सदस्यों को ढूँढकर Mention शुरू कर रहा हूँ...")
 
 
-def choose_question(excluded_questions=None):
+def choose_question():
     if not QUESTION_BANK:
         return None
-    excluded_questions = excluded_questions or set()
-    candidates = [
-        item for item in QUESTION_BANK
-        if item.get("question") and item.get("question") not in excluded_questions
-        and item.get("answers")
-    ]
-    return random.choice(candidates) if candidates else None
+    return random.choice(QUESTION_BANK)
 
 
-async def send_next_user_question(client, chat_id: int, user, state):
-    item = choose_question(set(state.get("asked_questions", [])))
+def prepare_options(item):
+    """Return four unique choices and the normalized accepted answers."""
+    accepted = item.get("answers") or []
+    correct = item.get("correct_answer") or (accepted[0] if accepted else "")
+    accepted_norm = {normalize_answer(a) for a in accepted if normalize_answer(a)}
+    accepted_norm.add(normalize_answer(correct))
+
+    options = list(item.get("options") or [])
+    if not any(normalize_answer(x) in accepted_norm for x in options):
+        options.append(correct)
+
+    # Deduplicate choices without changing their visible wording/order.
+    unique = []
+    seen = set()
+    for option in options:
+        option = str(option).strip()
+        key = normalize_answer(option)
+        if option and key and key not in seen:
+            unique.append(option)
+            seen.add(key)
+
+    # Fill missing choices from the question bank's other answers/options.
+    distractors = []
+    for other in QUESTION_BANK:
+        for candidate in (other.get("options") or []) + (other.get("answers") or []):
+            candidate = str(candidate).strip()
+            key = normalize_answer(candidate)
+            if candidate and key and key not in seen and key not in accepted_norm:
+                distractors.append(candidate)
+                seen.add(key)
+    random.shuffle(distractors)
+    unique.extend(distractors[:max(0, 4 - len(unique))])
+
+    # A valid MCQ always has four choices; rare sparse data gets neutral fillers.
+    fillers = ["इनमें से कोई नहीं", "उपरोक्त में से कोई नहीं", "इनमें से कोई भी नहीं", "अन्य"]
+    for filler in fillers:
+        if len(unique) >= 4:
+            break
+        if normalize_answer(filler) not in seen:
+            unique.append(filler)
+            seen.add(normalize_answer(filler))
+    unique = unique[:4]
+    random.shuffle(unique)
+    return unique, accepted_norm, str(correct)
+
+
+async def send_user_question(client, chat_id: int, user, item=None):
+    item = item or choose_question()
     if not item:
-        active_answers.get(chat_id, {}).pop(user.id, None)
-        await safe_send(
-            client,
-            chat_id,
-            f"🏁 <a href=\"tg://user?id={user.id}\">{html.escape(member_name(user))}</a>, "
-            "आपके सभी उपलब्ध सवाल पूरे हो गए!",
-        )
-        return False
-
-    state.setdefault("asked_questions", []).append(item["question"])
-    state["answers"] = [normalize_answer(a) for a in item.get("answers", [])]
-    state["question"] = item["question"]
-    state["category"] = item.get("category", "सामान्य ज्ञान")
+        return None
+    options, accepted, correct = prepare_options(item)
+    if len(options) != 4:
+        log.warning("Question has fewer than four options: %s", item.get("question"))
+        return None
 
     qtext = (
-        f"🧠 <b>{html.escape(state['category'])}</b>\n"
+        f"🧠 <b>{html.escape(str(item.get('category', 'Quiz')))}</b>\n"
         f'<a href="tg://user?id={user.id}">{html.escape(member_name(user))}</a>, '
-        f"आपका अगला सवाल:\n<b>{html.escape(state['question'])}</b>"
+        f"आपका सवाल:\n<b>{html.escape(str(item.get('question', '')))}</b>\n\n"
+        "नीचे दिए गए विकल्पों में से जवाब चुनें या इस सवाल के जवाब में लिखें।"
     )
-    await safe_send(client, chat_id, qtext)
-    return True
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"{chr(65+i)}. {option}", callback_data=f"quiz:{i}")]
+        for i, option in enumerate(options)
+    ])
+    sent_message = await client.send_message(
+        chat_id,
+        qtext,
+        parse_mode=enums.ParseMode.HTML,
+        reply_markup=keyboard,
+        disable_web_page_preview=True,
+    )
+    question_messages.setdefault(chat_id, {})[sent_message.id] = {
+        "question": str(item.get("question", "")),
+        "category": str(item.get("category", "सामान्य ज्ञान")),
+        "options": options,
+        "answers": accepted,
+        "correct": correct,
+        "answered": False,
+    }
+    return sent_message
+
+
+async def send_next_user_question(client, chat_id: int, user):
+    item = choose_question()
+    if not item:
+        await client.send_message(chat_id, "❌ questions.json में सवाल नहीं मिले।")
+        return
+    try:
+        await send_user_question(client, chat_id, user, item)
+    except FloodWait as e:
+        await asyncio.sleep(int(e.value) + 1)
+        await send_user_question(client, chat_id, user, item)
 
 
 async def question_worker(client, chat_id: int, cancel_event):
-    active_answers.setdefault(chat_id, {})
-    quiz_scores.setdefault(chat_id, {})
     sent = 0
     try:
         async for member in client.get_chat_members(chat_id):
@@ -228,17 +290,22 @@ async def question_worker(client, chat_id: int, cancel_event):
             user = member.user
             if user.is_bot or user.is_deleted:
                 continue
-            active_answers[chat_id][user.id] = {"asked_questions": []}
-            quiz_scores[chat_id].setdefault(user.id, 0)
-            if await send_next_user_question(
-                client, chat_id, user, active_answers[chat_id][user.id]
-            ):
+            item = choose_question()
+            if not item:
+                await safe_send(client, chat_id, "❌ questions.json में सवाल नहीं मिले।")
+                return
+            try:
+                await send_user_question(client, chat_id, user, item)
+                sent += 1
+            except FloodWait as e:
+                await asyncio.sleep(int(e.value) + 1)
+                await send_user_question(client, chat_id, user, item)
                 sent += 1
             await asyncio.sleep(1)
         if cancel_event.is_set():
             await safe_send(client, chat_id, f"⏹️ Quiz सवाल भेजना रोक दिया गया। {sent} सवाल भेजे गए।")
         else:
-            await safe_send(client, chat_id, f"✅ Quiz के {sent} अलग-अलग सवाल भेज दिए गए। जवाब आने पर जाँच होगी।")
+            await safe_send(client, chat_id, f"✅ {sent} अलग-अलग सवाल भेज दिए गए। किसी सवाल के बटन पर टैप करें या उसी सवाल का Reply करके जवाब लिखें।")
     except FloodWait as e:
         await safe_send(client, chat_id, f"⏳ Telegram FloodWait: {e.value} सेकंड। कुछ सवाल भेजे गए; बाद में फिर कोशिश करें।")
     except RPCError:
@@ -246,6 +313,56 @@ async def question_worker(client, chat_id: int, cancel_event):
         await safe_send(client, chat_id, "❌ सवाल भेजते समय Telegram error आया। Bot के admin अधिकार जाँचें।")
     finally:
         running_jobs.pop(chat_id, None)
+
+
+async def process_quiz_answer(client, chat_id, question_message_id, user, selected_answer):
+    state = question_messages.get(chat_id, {}).get(question_message_id)
+    if not state or state.get("answered"):
+        return False
+
+    state["answered"] = True
+    is_correct = normalize_answer(selected_answer) in state["answers"]
+    user_scores = quiz_scores.setdefault(chat_id, {})
+    user_scores.setdefault(user.id, 0)
+    if is_correct:
+        user_scores[user.id] += 1
+        feedback = f"✅ <a href=\"tg://user?id={user.id}\">{html.escape(member_name(user))}</a> का जवाब सही है! 🎉\nस्कोर: {user_scores[user.id]}"
+    else:
+        feedback = (
+            f"❌ <a href=\"tg://user?id={user.id}\">{html.escape(member_name(user))}</a> का जवाब गलत है।\n"
+            f"सही जवाब: <b>{html.escape(state['correct'])}</b>"
+        )
+
+    try:
+        await client.send_message(
+            chat_id,
+            feedback,
+            parse_mode=enums.ParseMode.HTML,
+            reply_to_message_id=question_message_id,
+        )
+    except RPCError:
+        log.exception("Quiz feedback send failed")
+    await send_next_user_question(client, chat_id, user)
+    return True
+
+
+@app.on_callback_query(filters.regex(r"^quiz:[0-3]$"))
+async def quiz_option_callback(client, query):
+    if not query.message or not query.from_user:
+        await query.answer("यह सवाल उपलब्ध नहीं है।", show_alert=True)
+        return
+    chat_id = query.message.chat.id
+    state = question_messages.get(chat_id, {}).get(query.message.id)
+    if not state or state.get("answered"):
+        await query.answer("इस सवाल का जवाब पहले ही दिया जा चुका है।", show_alert=True)
+        return
+    option_index = int(query.data.split(":", 1)[1])
+    options = state.get("options", [])
+    if option_index >= len(options):
+        await query.answer("यह विकल्प उपलब्ध नहीं है।", show_alert=True)
+        return
+    await query.answer("जवाब जाँचा जा रहा है…")
+    await process_quiz_answer(client, chat_id, query.message.id, query.from_user, options[option_index])
 
 
 @app.on_message(filters.command("question") & filters.group)
@@ -263,8 +380,8 @@ async def question_command(client, message):
     task = asyncio.create_task(question_worker(client, chat_id, cancel_event))
     running_jobs[chat_id] = {"task": task, "cancel": cancel_event}
     quiz_scores[chat_id] = {}
-    active_answers[chat_id] = {}
-    await message.reply_text("🧠 Quiz शुरू! हर सदस्य को 1 सेकंड के अंतर पर अलग सवाल मिलेगा।")
+    question_messages[chat_id] = {}
+    await message.reply_text("🧠 Quiz शुरू! हर सदस्य को अलग सवाल और 4 विकल्प मिलेंगे।")
 
 
 @app.on_message(filters.command("cancel") & filters.group)
@@ -302,22 +419,19 @@ async def id_command(client, message):
 async def check_quiz_answer(client, message):
     if not message.from_user or message.from_user.is_bot:
         return
-    chat_id = message.chat.id
-    expected = active_answers.get(chat_id, {}).get(message.from_user.id)
-    if not expected:
+    # Only replies to a bot message that is a recorded quiz question count.
+    replied = message.reply_to_message
+    if not replied or not replied.from_user or not replied.from_user.is_bot:
         return
-    received = normalize_answer(message.text)
-    if received in expected["answers"]:
-        quiz_scores.setdefault(chat_id, {})
-        quiz_scores[chat_id][message.from_user.id] = quiz_scores[chat_id].get(message.from_user.id, 0) + 1
-        score = quiz_scores[chat_id][message.from_user.id]
-        await message.reply_text(f"✅ आपका जवाब सही है! 🎉\nआपका स्कोर: {score}")
-    else:
-        correct = expected["answers"][0]
-        await message.reply_text(f"❌ आपका जवाब गलत है।\nसही जवाब: {correct}")
-    # हर सदस्य का अगला सवाल स्वतंत्र रूप से आगे बढ़ेगा।
-    await send_next_user_question(
-        client, chat_id, message.from_user, expected
+    state = question_messages.get(message.chat.id, {}).get(replied.id)
+    if not state or state.get("answered"):
+        return
+    await process_quiz_answer(
+        client,
+        message.chat.id,
+        replied.id,
+        message.from_user,
+        message.text,
     )
 
 
