@@ -127,7 +127,7 @@ async def help_command(client, message):
         "/id - ग्रुप और यूजर ID देखें\n"
         "/question - हर सदस्य को अलग Quiz सवाल भेजें\n\n"
         "⚠️ /mention, /cancel और /question केवल ग्रुप एडमिन चला सकते हैं।\n"
-        "Quiz के सवाल हिंदी में हैं। जवाब देने पर Bot सही/गलत बताएगा।",
+        "Quiz के सवाल हिंदी में हैं। जवाब देने पर Bot सही/गलत बताएगा और उसी सदस्य को अगला सवाल देगा।",
         parse_mode=enums.ParseMode.HTML,
     )
 
@@ -179,10 +179,42 @@ async def mention_command(client, message):
     await message.reply_text("🔎 सदस्यों को ढूँढकर Mention शुरू कर रहा हूँ...")
 
 
-def choose_question():
+def choose_question(excluded_questions=None):
     if not QUESTION_BANK:
         return None
-    return random.choice(QUESTION_BANK)
+    excluded_questions = excluded_questions or set()
+    candidates = [
+        item for item in QUESTION_BANK
+        if item.get("question") and item.get("question") not in excluded_questions
+        and item.get("answers")
+    ]
+    return random.choice(candidates) if candidates else None
+
+
+async def send_next_user_question(client, chat_id: int, user, state):
+    item = choose_question(set(state.get("asked_questions", [])))
+    if not item:
+        active_answers.get(chat_id, {}).pop(user.id, None)
+        await safe_send(
+            client,
+            chat_id,
+            f"🏁 <a href=\"tg://user?id={user.id}\">{html.escape(member_name(user))}</a>, "
+            "आपके सभी उपलब्ध सवाल पूरे हो गए!",
+        )
+        return False
+
+    state.setdefault("asked_questions", []).append(item["question"])
+    state["answers"] = [normalize_answer(a) for a in item.get("answers", [])]
+    state["question"] = item["question"]
+    state["category"] = item.get("category", "सामान्य ज्ञान")
+
+    qtext = (
+        f"🧠 <b>{html.escape(state['category'])}</b>\n"
+        f'<a href="tg://user?id={user.id}">{html.escape(member_name(user))}</a>, '
+        f"आपका अगला सवाल:\n<b>{html.escape(state['question'])}</b>"
+    )
+    await safe_send(client, chat_id, qtext)
+    return True
 
 
 async def question_worker(client, chat_id: int, cancel_event):
@@ -196,26 +228,12 @@ async def question_worker(client, chat_id: int, cancel_event):
             user = member.user
             if user.is_bot or user.is_deleted:
                 continue
-            item = choose_question()
-            if not item:
-                await safe_send(client, chat_id, "❌ questions.json में सवाल नहीं मिले।")
-                return
-            answers = item.get("answers", [])
-            if not answers:
-                continue
-            active_answers[chat_id][user.id] = {
-                "answers": [normalize_answer(a) for a in answers],
-                "question": item["question"],
-                "category": item.get("category", "सामान्य ज्ञान"),
-            }
+            active_answers[chat_id][user.id] = {"asked_questions": []}
             quiz_scores[chat_id].setdefault(user.id, 0)
-            qtext = (
-                f"🧠 <b>{html.escape(item.get('category', 'Quiz'))}</b>\n"
-                f'<a href="tg://user?id={user.id}">{html.escape(member_name(user))}</a>, '
-                f"आपका सवाल:\n<b>{html.escape(item['question'])}</b>"
-            )
-            await safe_send(client, chat_id, qtext)
-            sent += 1
+            if await send_next_user_question(
+                client, chat_id, user, active_answers[chat_id][user.id]
+            ):
+                sent += 1
             await asyncio.sleep(1)
         if cancel_event.is_set():
             await safe_send(client, chat_id, f"⏹️ Quiz सवाल भेजना रोक दिया गया। {sent} सवाल भेजे गए।")
@@ -245,6 +263,7 @@ async def question_command(client, message):
     task = asyncio.create_task(question_worker(client, chat_id, cancel_event))
     running_jobs[chat_id] = {"task": task, "cancel": cancel_event}
     quiz_scores[chat_id] = {}
+    active_answers[chat_id] = {}
     await message.reply_text("🧠 Quiz शुरू! हर सदस्य को 1 सेकंड के अंतर पर अलग सवाल मिलेगा।")
 
 
@@ -296,8 +315,10 @@ async def check_quiz_answer(client, message):
     else:
         correct = expected["answers"][0]
         await message.reply_text(f"❌ आपका जवाब गलत है।\nसही जवाब: {correct}")
-    # One question per member in each quiz run.
-    active_answers[chat_id].pop(message.from_user.id, None)
+    # हर सदस्य का अगला सवाल स्वतंत्र रूप से आगे बढ़ेगा।
+    await send_next_user_question(
+        client, chat_id, message.from_user, expected
+    )
 
 
 if __name__ == "__main__":
